@@ -20,7 +20,7 @@ modeling:
         nn:
         DeepLearning:\
 
-statistic_test:https://blog.csdn.net/weixin_46271668/article/details/123981051
+statistic_test:
     normality test
     correlation test
     significance test
