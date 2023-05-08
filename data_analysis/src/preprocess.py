@@ -101,7 +101,7 @@ def drop_outliers(dfs,detail, fids=None,cols=None,draw=False,path=''):
         fids = dfs.keys()
     out_cols={}
     for i in fids:
-        out_cols[i]=detail[i]['col_dtypes']['float_cols']
+        out_cols[i]=detail[i]['col_dtypes']['float']
     if cols is None:
         cols=out_cols
     else:
@@ -180,8 +180,8 @@ class PreProcessor(object):
         self.update_details()
     def show_files_cols_desc(self, fids=None):
         show_files_cols_desc(self.operator.dfs, fids)
-
-
+    def auto_process(self):
+        pass
 
 
 

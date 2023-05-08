@@ -3,7 +3,6 @@ import numpy as np
 from data_analysis.src.hyper import FLOATS,INTS,STRS
 
 
-
 def drop_cols(df,cols):
     return df.drop(axis=1,columns=cols)
 
@@ -34,7 +33,22 @@ def list_drop(l,value):
     return l
 
 def list_in(l,values):
+    """
+    return the indexs of the element of l which in values
+    l:
+    values:
+    """
     return list_drop([i if l[i] in values else -1 for i in range(len(l))],-1)
+
+def contain(fullset,subset):
+    """
+    if fullset contain subset return 1 else 0
+    """
+    for i in subset:
+        if i not in fullset:
+            return 0
+    return 1
+
 
 def get_details(df):
     col_dtypes=list(df.dtypes.values)
@@ -44,7 +58,7 @@ def get_details(df):
     return     {
         'base':{'num':len(df),'features_n':len(df.columns.values),},
         'col_names':list(df.columns.values),
-        'col_dtypes':{'str_cols':str_cols,'float_cols':float_cols,'int_cols':int_cols},
+        'col_dtypes':{'str':str_cols,'float':float_cols,'int':int_cols},
         'col_null':list(df.isnull().astype(int).sum(axis=0).values),
         'row_null':int(df.isnull().astype(int).any(axis=1).sum()),
                }
@@ -104,17 +118,38 @@ def get_files_cols_desc(dfs,fids=None):
         files_cols_desc[i]=get_cols_desc(dfs[i])
     return files_cols_desc
 
+def random_choice(n,indexs):
+    assert n<len(indexs)
+    return np.random.choice(indexs,size=n)
 
 
+def format_name(name: str):
+    # revise invalid column names
+    return name.replace('\n', '_').replace('\t', '').replace(' ', '')
+def format_names(names):
+    return map(format_name,names)
 
 
+def set_default_kwarg_2d(l):
+    return {
+        'title':'',
+        'xlabel':'',
+        'ylabel':'',
+        'xticks':np.arange(l),
+        'yticks': np.arange(l),
+        'xtickslabel':np.arange(l),
+        'ytickslabel':np.arange(l),
 
+        'fs':15,
+        'textfs': 15,
+        'textc': 'black',
+        'marker':['.'],
+        'markers':15,
 
+        'figsize':[8,6],
+        'legends':[],
 
-
-
-
-
+    }
 
 
 

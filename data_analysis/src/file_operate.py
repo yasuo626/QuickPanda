@@ -3,7 +3,7 @@ import numpy as np
 import os, sys
 import re
 from data_analysis.src import utils
-from data_analysis.src.utils import get_details,get_cols_desc,get_files_cols_desc
+from data_analysis.src.utils import get_details,get_cols_desc,get_files_cols_desc,format_names,list_in
 from data_analysis.src.hyper import FLOATS,INTS,STRS
 
 
@@ -11,6 +11,7 @@ from data_analysis.src.hyper import FLOATS,INTS,STRS
 # pandas read file
 def pd_read_csv(path,file_name,sep,show_details):
     df=pd.read_csv(filepath_or_buffer=path,sep=sep)
+    df.columns=format_names(df.columns)
     details = get_details(df)
     cols_details=get_cols_desc(df)
     if show_details:
@@ -18,6 +19,7 @@ def pd_read_csv(path,file_name,sep,show_details):
     return df,details,cols_details
 def pd_read_excel(path,file_name,sep,show_details):
     df=pd.read_excel(path)
+    df.columns=format_names(df.columns)
     details = get_details(df)
     cols_details=get_cols_desc(df)
     if show_details:
@@ -104,12 +106,59 @@ class FileOperator(object):
                 print(f'\t{k}:')
                 print(f'\t{self.dfs_desc[i][k]}')
 
+    def asdtype(self,dtypes:dict):
+
+        print('asdtype:\t',end='')
+        for f in dtypes.keys():
+            if f not in self.dfs.keys():
+                raise ValueError(f'not found file {f}')
+            print(f'{f}:', end='')
+            for c in dtypes[f]:
+                if isinstance(c,int):
+                    raise ValueError('Only a column name can be used for the key in a dtype mappings argument.')
+                if c not in self.dfs[f].columns:
+                    raise ValueError(f'not found col {f}.{c}')
+                self.dfs[f][c]= self.dfs[f][c].astype(dtypes[f][c])
+                print(f'{c}', end=',')
+            print(';',end='\t')
+            self.dfs_desc[f]=get_details(self.dfs[f])
+        print('')
+
+    def get_cols(self,fid,type,name=False):
+        if type in ['float','int','str']:
+            if not name:
+                return self.dfs_desc[fid]['col_dtypes'][type]
+            return np.array(self.dfs_desc[fid]['col_names'])[self.dfs_desc[fid]['col_dtypes'][type]]
+        else:
+            assert list_in(['float','int','str'],type)
+            cols=[]
+            for t in type:
+                cols.extend(self.dfs_desc[fid]['col_dtypes'][t])
+            if not name:
+                return cols
+            else:
+                return np.array(self.dfs_desc[fid]['col_names'])[cols]
+
+    def idx2name(self,fid,idx):
+        assert idx<len(self.dfs[fid].columns)
+        return self.dfs[fid].columns[idx]
+    def idxs2names(self,fid,idxs):
+        for idx in idxs:
+            assert idx<len(self.dfs[fid].columns)
+        return self.dfs[fid].columns[idxs]
+    def name2idx(self,fid,name):
+        return self.dfs_desc[fid]['col_names'].index(name)
+    def names2idxs(self,fid,names):
+        return [self.name2idx(fid,name) for name in names]
+
+
     def save(self):
         pass
     def load(self):
         pass
 
-
+    def auto_process(self):
+        pass
 
 
 
