@@ -1,6 +1,6 @@
-#a pipeline for quick data analysis and machine learning
+# a pipeline for quick data analysis and machine learning
 
-##file_operate:
+## file_operate:
 
 ***
 --------
@@ -9,19 +9,19 @@
 * read file and do base operate like auto asdtype etc.
 * it support multi type files operates together.
 
-##preprocess:
+## preprocess:
 
     create a preprocessor to preprocessing(dropna,fillna,dropoutlyers...)
     you can select the file and cols by passing dict-type args.
-##analysis:
+## analysis:
     base on the previous manipulations,we get clean datas,we can now acutally start the analysis tasks:
     correlation:
         get correlations between value-type features and labels. 
         compare the correlation between class-type features and labels.
-##ploting:    
+## ploting:    
     draw graceful basic figures(linear,scatter,bar) fast and scalably.
 
-##modeling:
+## modeling:
     we provide base ml models to complete classification or regression tasks
     listing:
         gbdt:xgboost,light gbm,radom forests
@@ -37,9 +37,3 @@ statistic_test:
     significance test
     parametric test
     nonparametric test
-
-|  表头   | 表头  |
-|  ----  | ----  |
-| 单元格  | 单元格 |
-| 单元格  | 单元格 |
-![alt 属性文本](C:\Users\23920\Desktop\avatar.jpg)
