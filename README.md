@@ -2,10 +2,6 @@
 
 ## file_operate:
 
-***
---------
-> <u>__*~~123~~*__</u>
-
 * read file and do base operate like auto asdtype etc.
 * it support multi type files operates together.
 
@@ -18,8 +14,7 @@
     correlation:
         get correlations between value-type features and labels. 
         compare the correlation between class-type features and labels.
-## ploting:    
-    draw graceful basic figures(linear,scatter,bar) fast and scalably.
+        
 
 ## modeling:
     we provide base ml models to complete classification or regression tasks
@@ -30,8 +25,10 @@
         nn:
         DeepLearning:\
 
-statistic_test:
-    <!--[test func](https://blog.csdn.net/weixin_46271668/article/details/123981051) -->
+## statistic_test:
+
+[//]: #  (    [test func]&#40;https://blog.csdn.net/weixin_46271668/article/details/123981051&#41;)
+
     normality test
     correlation test
     significance test

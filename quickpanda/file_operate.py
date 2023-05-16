@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
-import os, sys
+import os
 import re
-from data_analysis.src import utils
-from data_analysis.src.utils import get_details,get_cols_desc,get_files_cols_desc,format_names,list_in
-from data_analysis.src.hyper import FLOATS,INTS,STRS
+from quickpanda import utils
+from quickpanda.utils import get_details,get_cols_desc, format_names,list_in
+from quickpanda.hyper import FLOATS,INTS,STRS
 
 
 
@@ -49,7 +49,7 @@ class FileOperator(object):
         self.dfs_desc={}
         self.dfs_cols_desc={}
 
-    def read_file(self,fid:str,path:str,file_type='',sep='',acculate=False,show_detail=False):
+    def read_file(self,fid:str,path:str,file_type='',sep=',',acculate=False,show_detail=False):
         if fid in self.dfs.keys():
             raise ValueError(f'{fid} file exists')
         file_info=path.split('.')
@@ -58,7 +58,7 @@ class FileOperator(object):
                 raise ValueError('unknown file type')
             file_type=file_info[-1]
         file_name=re.split(r'[\/\\\\]',path)[-1]
-        is_in,self.io_type,idx=utils.in_dict_lists(self.support_types,value=file_type)
+        is_in,self.io_type,idx= utils.in_dict_lists(self.support_types, value=file_type)
         if not is_in:
             raise ValueError('unsupport file type')
         if not os.path.exists(path):
@@ -66,8 +66,8 @@ class FileOperator(object):
         if acculate:
             assert self.io_type == 'acc'
 
-        self.df,details,cols_details=self.pd_read_file(path,file_name,file_type,sep,show_detail)
-        self.dfs[fid]=self.df
+        df,details,cols_details=self.pd_read_file(path,file_name,file_type,sep,show_detail)
+        self.dfs[fid]=df
         self.dfs_desc[fid]=details
         self.dfs_cols_desc[fid]=cols_details
 
@@ -159,6 +159,12 @@ class FileOperator(object):
 
     def auto_process(self):
         pass
+
+    def df_remove(self,fids):
+        for f in fids:
+            self.dfs.pop(f)
+            self.dfs_desc.pop(f)
+            self.dfs_cols_desc.pop(f)
 
 
 

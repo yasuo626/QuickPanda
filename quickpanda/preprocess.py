@@ -1,16 +1,17 @@
 import math
+import warnings
+
 import matplotlib.pyplot as plt
 
-from data_analysis.src import file_operate
-from data_analysis.src.utils import get_details
-from data_analysis.src.file_operate import FLOATS,INTS
-from data_analysis.src.utils import list_drop,list_in,get_files_cols_desc,get_cols_desc,drop_cols
+from quickpanda import file_operate
+from quickpanda.utils import get_details
+from quickpanda.file_operate import FLOATS
+from quickpanda.utils import list_in,get_files_cols_desc,get_cols_desc,drop_cols,df_flush
 
-import pandas as pd
 import numpy as np
 
 from sklearn.impute import KNNImputer,SimpleImputer
-from sklearn.preprocessing import OneHotEncoder,OrdinalEncoder,Normalizer,MinMaxScaler,StandardScaler
+from sklearn.preprocessing import MinMaxScaler,StandardScaler
 
 
 def df_drop_outliers(df,cols,draw,path):
@@ -50,7 +51,7 @@ def df_drop_outliers(df,cols,draw,path):
         plt.show()
     print(f'total drop num:{len(is_drop)}')
 
-    return df.drop(list(set(is_drop)),axis=0).reset_index().drop(['index'],axis=1)
+    return df_flush(df.drop(list(set(is_drop)),axis=0))
 def fillna(dfs,fids, n_neighbors=-1,str_strategy="most_frequent",float_strategy="median",const="",float_miss=np.NaN,str_miss=np.nan):
     if fids is None:
         fids = dfs.keys()
@@ -86,14 +87,14 @@ def fillna(dfs,fids, n_neighbors=-1,str_strategy="most_frequent",float_strategy=
             dfs[i].loc[:, str_cols] = str_imputer.fit_transform(dfs[i].loc[:, str_cols].values)
         if float_cols!=[]:
             dfs[i].loc[:, float_cols] = float_imputer.fit_transform(dfs[i].loc[:, float_cols].values)
-
+        dfs[i]=df_flush(dfs[i])
     print(f'fillna for:{list(fids)} ((float_nan={float_miss},strategy:{float_strategy}),(str_nan={str_miss},strategy:{str_strategy}))')
     return dfs
 def dropna(dfs,fids=None):
     if fids is None:
         fids = dfs.keys()
     for i in fids:
-        dfs[i]=dfs[i].dropna()
+        dfs[i]=df_flush(dfs[i].dropna())
     print(f'dropna for:{list(fids)}')
     return dfs
 def drop_outliers(dfs,detail, fids=None,cols=None,draw=False,path=''):
@@ -107,7 +108,9 @@ def drop_outliers(dfs,detail, fids=None,cols=None,draw=False,path=''):
     else:
         for i in cols.keys():
             for j in cols[i]:
-                assert j in out_cols[i]
+                if j not in out_cols[i]:
+                    print(f'{i}.{j} is not float type, consider col in {out_cols[i]}')
+                    return -1
     for i in fids:
         print(i,end='\t')
         dfs[i]=df_drop_outliers(dfs[i],out_cols[i],draw,path)
@@ -153,7 +156,7 @@ def show_files_cols_desc(dfs,fids=None):
 
 
 class PreProcessor(object):
-    def __init__(self,operator:file_operate.FileOperator):
+    def __init__(self, operator: file_operate.FileOperator):
         self.operator=operator
 
     def update_details(self):
@@ -167,6 +170,9 @@ class PreProcessor(object):
     def dropna(self,fids=None):
         dropna(self.operator.dfs,fids)
         self.update_details()
+        self.empty_file_check()
+        self.update_details()
+
     def norm(self,fids=None):
         self.operator.dfs=norm(self.operator.dfs,fids)
         self.update_details()
@@ -183,9 +189,15 @@ class PreProcessor(object):
     def auto_process(self):
         pass
 
-
-
-
+    def empty_file_check(self):
+        drop_ids=[]
+        for fid in self.operator.dfs.keys():
+            print(self.operator.dfs_desc[fid]['base']['num'])
+            if self.operator.dfs_desc[fid]['base']['num']==0:
+                drop_ids.append(fid)
+        self.operator.df_remove(drop_ids)
+        warnings.warn(f'file:{drop_ids} is dropped because is empty')
+        self.update_details()
 
 
 

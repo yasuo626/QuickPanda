@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from data_analysis.src.hyper import FLOATS,INTS,STRS
+from quickpanda.hyper import FLOATS,INTS,STRS
 
 
 def drop_cols(df,cols):
@@ -151,8 +151,8 @@ def set_default_kwarg_2d(l):
 
     }
 
-
-
+def df_flush(df):
+    return df.reset_index().drop(['index'], axis=1)
 
 
 

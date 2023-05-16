@@ -2,22 +2,23 @@ import os.path
 import warnings
 
 import numpy as np
-import pandas as pd
 import tqdm
 
 import seaborn as sns
 
-from data_analysis.src.utils import random_choice
+from quickpanda.utils import random_choice
 from matplotlib import pyplot as plt
-from data_analysis.src.hyper import COLORS,LINESTYLES,MARKERS
-from data_analysis.src.utils import contain,set_default_kwarg_2d
+from quickpanda.hyper import COLORS,LINESTYLES,MARKERS
+from quickpanda.utils import contain
+
 default_arg={
     'count':0,
     'max_num':9999,
     'base':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel'},
-    'linear':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':[],'linewidth':2,'marker':'','markersize':0, 'markerfacecolor':'red', 'markeredgecolor':'green'},
-    'scatter':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':[],'linewidth':2,'marker':'.','markersize':0, 'markerfacecolor':'red', 'markeredgecolor':'green'},
-    'bar':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':[],'edgecolor':'black','scale_group':3,'scale_bar':3,'textfs':10,'xfs':10,'yfs':10,'tfs':10,'text_align':0.3},
+    'heatmap':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','text_color':'b','text_style':'italic','text_fontsize':15,},
+    'linear':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':None,'linewidth':2,'marker':'','markersize':0, 'markerfacecolor':'red', 'markeredgecolor':'green'},
+    'scatter':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':None,'linewidth':2,'marker':'.','markersize':0, 'markerfacecolor':'red', 'markeredgecolor':'green'},
+    'bar':{'w':12,'h':10,'dpi':100,'title':'title','xlabel':'xlabel','ylabel':'ylabel','names':None,'value_labels':[],'edgecolor':'black','scale_group':3,'scale_bar':3,'textfs':10,'xfs':10,'yfs':10,'tfs':10,'text_align':0.3},
 
 
 }
@@ -45,8 +46,14 @@ def line_choice(n):
     return np.array(LINESTYLES, dtype=object)[ids]
 def marker_choice(n):
     return random_choice(n,MARKERS)
-def get_position(w,m,n,scale_group=1,scale_bar=1):
+def get_position(width,group_n,var_n,scale_group=1,scale_bar=1):
+    """
+    给定区域宽度，对组数和变量数给定条件下返回每个变量柱的坐标向量的列表shape=[m,n]
+    例如我有一个三个地区的gdp、人口的数据，shape=[3,2]
+    scale 是对组和柱的缩放程度，默认scale=1的间距是自身空间的10%，可缩放范围[0.1,9]
+    """
     # width,m(group_num),n(var_num)
+    w,m,n=width,group_n,var_n
     scale_group=9 if scale_group>9 else scale_group
     scale_group=0.1 if scale_group<0.1 else scale_group
     scale_bar=9 if scale_bar>9 else scale_bar
@@ -65,6 +72,37 @@ def get_position(w,m,n,scale_group=1,scale_bar=1):
         # 'group_s':group_s,
     }
 
+def group_split(group_b,group_w,times):
+    split_w=group_w/times
+    splits=[]
+    for i in range(len(group_b)):
+        bias=group_b[i]
+        split=[bias+split_w*j for j in range(times)]
+        splits.extend(split)
+    return {
+        "bias":splits,
+        "width":split_w
+    }
+
+def get_multi_group_position(width, groups, var_n, scale_group=1, scale_bar=1):
+    """
+    width: total width
+    groups:list with num of values each group
+    """
+    groupsn=[len(g) for g in groups]
+    bias = [0]
+    w = width
+    for g in groupsn[:-1]:
+        h = group_split(bias, w, g)
+        bias, w = h['bias'], h['width']
+    h = get_position(w, groupsn[-1], var_n, scale_group=scale_group, scale_bar=scale_bar)
+    posi, bar_w = h['pos'], h['bar_w']
+    pos = [posi.T+b for b in bias]
+    return {
+        'pos': np.vstack(pos),
+        'bar_w': bar_w,
+    }
+
 def draw_linear(data:np.array,idx=-1,save='',show=False,**arg):
     """
     data:[n,m] n simples and m dimension
@@ -76,7 +114,7 @@ def draw_linear(data:np.array,idx=-1,save='',show=False,**arg):
     if len(data.shape)<2:
         data=data.reshape(-1,1)
     arg=set_arg(default_arg['linear'],arg)
-    if arg['names']==[]:
+    if arg['names'] is None:
         arg['names']=[f'x{i}' for i in range(data.shape[1])]
     n=data.shape[0]
     if idx==-1:
@@ -171,10 +209,13 @@ def univar_xlinear_plot(dfs,detail,fids=None,cols=None,show=False,path='.',arg=N
 # correlation
 # corr_heatmap
 # corr_scatter
-def corr_heatmap(corr_matrix,col_names=None,title=None,path='',save=False,show=False,text_color='b',text_style='italic',text_fontsize=15):
+def corr_heatmap(corr_matrix,col_names=None,title=None,path='',save=False,show=False,**kwargs):
+    arg=default_arg['base']
+    for k in kwargs.keys():
+        arg[k]=kwargs[k]
     if col_names is None:
         col_names=range(len(corr_matrix))
-    f, ax = plt.subplots(figsize=(len(corr_matrix)+8,len(corr_matrix)+5),dpi=200)
+    f, ax = plt.subplots(figsize=(len(corr_matrix)+8,len(corr_matrix)+5),dpi=arg['dpi'])
     cmap = sns.diverging_palette(230, 20, as_cmap=True)
     sns.heatmap(corr_matrix, cmap=cmap, vmax=1, center=0,
             square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
@@ -183,7 +224,7 @@ def corr_heatmap(corr_matrix,col_names=None,title=None,path='',save=False,show=F
     ax.set_yticklabels([plt.Text(0,i+0.5,f'{col_names[i]}') for i in range(len(col_names))], rotation=0)
     # for i in range(corr_matrix.shape[0]):
     #     for j in range(corr_matrix.shape[0]):
-    #         ax.text(i+0.5,j+0.5,f'{round(corr_matrix[i,j],2)}',style=text_style,color=text_color,fontsize=text_fontsize)
+    #         ax.text(i+0.5,j+0.5,f'{round(corr_matrix[i,j],2)}',style=arg['text_style'],color=arg['text_color'],fontsize=arg['text_fontsize'])
     if save:
         if path!='':
             plt.savefig(path)
@@ -203,7 +244,7 @@ def scatter(x,y,xtickslabel=None,path='',save=False,show=False,**kwargs):
     if x.shape[0]!=y.shape[0]:
         y=y.T
     n= y.shape[1]
-    if arg['names']==[]:
+    if arg['names'] is None:
         arg['names']=[f'c{i}' for i in range(n)]
     colors=color_choice(n)
 
@@ -215,7 +256,6 @@ def scatter(x,y,xtickslabel=None,path='',save=False,show=False,**kwargs):
         ax.set_xticklabels(xtickslabel,rotation=45)
 
     for i in range(y.shape[1]):
-        print(i)
         ax.scatter(x, y[:,i], s=100, c=colors[i], alpha=0.9,marker=arg['marker'],label=arg['names'][i])
     ax.legend()
     if save and path !='':
@@ -236,7 +276,7 @@ def linear(x,y,xtickslabel=None,path='',save=False,show=False,**kwargs):
     if x.shape[0]!=y.shape[0]:
         y=y.T
     n= y.shape[1]
-    if arg['names']==[]:
+    if arg['names'] is None:
         arg['names']=[f'c{i}' for i in range(n)]
     colors=color_choice(n)
     linestyle=line_choice(n)
@@ -256,7 +296,16 @@ def linear(x,y,xtickslabel=None,path='',save=False,show=False,**kwargs):
     if show:
         plt.show()
 
-def bar(y,group_names=None,tip=True,path='',save=False,show=False,**kwargs):
+
+def get_idx(i,groupsn):
+    idx=[]
+    for k in groupsn[::-1]:
+        dup=i%k
+        idx.append(dup)
+        i=(i-dup)//k
+    idx.reverse()
+    return idx
+def group_bar(y,by_n,group_names=None,mark=True,path='',save=False,show=False,**kwargs):
     """
     y:the multi_group_vars  np.shape:[n,m]
     n means group,m means multi_indicators' values
@@ -266,28 +315,58 @@ def bar(y,group_names=None,tip=True,path='',save=False,show=False,**kwargs):
         arg[k]=kwargs[k]
     y=np.array(y)
     m,n= y.shape[0],y.shape[1]
-    if arg['names']==[]:
+    if arg['names'] is None:
         arg['names']=[f'c{i}' for i in range(n)]
-    colors=color_choice(n)
-
-    pos=get_position(arg['w'],m,n,scale_group=arg['scale_group'],scale_bar=arg['scale_bar'])
+    colors=color_choice(n-by_n)
+    groups=[]
+    groupsn=[]
+    total_n=1
+    for i in range(by_n):
+        groups.append(np.unique(y[:,i]))
+        total_n*=len(groups[-1])
+        groupsn.append(len(groups[-1]))
+    pos=get_multi_group_position(width=arg['w'],groups=groups,var_n=n-by_n,scale_group=arg['scale_group'],scale_bar=arg['scale_bar'])
     fig, ax = plt.subplots(figsize=(arg['w'],arg['h']),dpi=arg['dpi'])
     ax.set_title(arg['title'],fontsize=arg['tfs'])
     ax.set_xlabel(arg['xlabel'],fontsize=arg['xfs'])
     ax.set_ylabel(arg['ylabel'],rotation=0,fontsize=arg['yfs'])
-    ax.set_xticks(pos['pos'][n//2,:])
-    if group_names is not None:
-        ax.set_xticklabels(group_names,rotation=45,fontsize=arg['xfs'])
-    else:
-        ax.set_xticklabels([f'type{i}' for i in range(m)])
+    ax.set_xticks(pos['pos'][:,max((n-by_n)//2,1)])
 
-    for i in range(y.shape[1]):
+    xtick_labels=[]
+    i,j=0,0
+    data=[]
+    while i < total_n:
         x=pos['pos'][i,:]
-        ax.bar(x,y[:,i],width=pos['bar_w'], color=colors[i],label=arg['names'][i],edgecolor=arg['edgecolor'])
-        if tip:
-            for j in range(len(x)):
-                ax.annotate(f'{round(y[j,i])}', xy=(x[j], min(y[j,i]+arg['text_align']*arg['textfs']*i,np.max(y))),
+        idx=get_idx(i, groupsn)
+        t="_".join([f'{groups[k][idx[k]]}' for k in range(len(idx))])
+        xtick_labels.append(t)
+        if all([y[j,k]==groups[k][idx[k]] for k in range(len(idx))]):
+            u=y[j,by_n:]
+            j+=1
+        else:
+            u=np.zeros([n-by_n])
+        data.append(u)
+        i+=1
+    data=np.vstack(data)
+    i=0
+    if arg['value_labels']==[]:
+        [arg['value_labels'].append(f'value{i}') for i in range(n-by_n)]
+    for i in range(n-by_n):
+        x=pos['pos'][:,i]
+        u=data[:,i]
+        ax.bar(x,u,width=pos['bar_w'], color=colors[i],label=arg['value_labels'][i],edgecolor=arg['edgecolor'])
+        if mark:
+            for k in range(len(x)):
+                ax.annotate(f'{round(x[k])}', xy=(x[k], min(u[k]+arg['text_align']*arg['textfs']*k,np.max(u))),
                             xytext=(0, 3), textcoords='offset points', ha='center', va='bottom',fontsize=arg['textfs'])
+
+    if group_names is not None:
+        try:
+            ax.set_xticklabels(group_names,rotation=45,fontsize=arg['xfs'])
+        except:
+            print("wrong group_names")
+    else:
+        ax.set_xticklabels(xtick_labels,rotation=60)
 
     ax.legend()
     if save and path !='':

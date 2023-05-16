@@ -1,12 +1,8 @@
 import warnings
 
 import numpy as np
-import pandas as pd
-from sklearn.covariance import EmpiricalCovariance
-from scipy.stats import spearmanr, pearsonr
-import tqdm
-from data_analysis.src.file_operate import FileOperator
-from data_analysis.src.utils import random_choice,contain,list_drop,list_in
+from quickpanda.file_operate import FileOperator
+from quickpanda.utils import contain,list_drop
 
 
 class Analyzer(object):
@@ -50,19 +46,19 @@ class Analyzer(object):
         return {
             'x':x.values if index!=-1 else x,
             'y':self.operator.dfs[fid].iloc[:, cols].values,
-            'names':['' if index==-1 else self.operator.dfs[fid].columns[index],self.operator.dfs[fid].columns]
+            'names': {'x':'' if index == -1 else self.operator.dfs[fid].columns[index],'y':self.operator.dfs[fid].columns}
             }
 
-    def corr_unique_group(self,fid,by:list,value='mean',cols=None):
+    def corr_unique_groupby(self,fid,by:list,value='mean',cols=None):
         assert len(by)==1
-        out=self.corr_multi_group(fid,by,value,cols)
+        out=self.corr_multi_groupby(fid,by,value,cols)
         return {
             'by':out['data'][:,0],
             'values':out['data'][:,1:],
             'col_names':out['col_names'],
         }
 
-    def corr_multi_group(self,fid,by:list,value='mean',cols=None):
+    def corr_multi_groupby(self,fid,by:list,value='mean',cols=None):
 
         """
         statistical the difference of value between different groups
@@ -103,6 +99,7 @@ class Analyzer(object):
         return {
             'data':data.values,
             'col_names':by + cols,
+            'n_by':len(by)
         }
 
 
